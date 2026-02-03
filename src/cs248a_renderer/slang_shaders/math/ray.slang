@@ -24,9 +24,13 @@ public struct Ray
     public Ray transform(float4x4 matrix)
     {
         // TODO: Student implementation starts here.
-        Ray newRay = this;
+        float4 newOrigin4 = mul(matrix, float4(this.origin, 1.0));
+        // Direction vectors are not affected by translation, so we use 0.0 as the w component.
+        float4 newDirection4 = mul(matrix, float4(this.direction, 0.0));
+
+        return Ray(float3(newOrigin4.xyz), float3(newDirection4.xyz), this.tRange);
+
         // TODO: Student implementation ends here.
-        return newRay;
     }
 };
 

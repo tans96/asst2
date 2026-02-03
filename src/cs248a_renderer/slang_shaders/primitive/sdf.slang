@@ -96,9 +96,8 @@ public struct SphereSDF : ISDF
     public float sdf(float3 point)
     {
         // TODO: Student implementation starts here.
-
         float3 localPoint = mul(this.invModelMatrix, float4(point, 1.0)).xyz;
-        return length(localPoint - this.center) - this.radius;
+        return distance(localPoint, this.center) - this.radius;
 
         // TODO: Student implementation ends here.
     }
@@ -106,9 +105,10 @@ public struct SphereSDF : ISDF
     public float3 normal(float3 point)
     {
         // TODO: Student implementation starts here.
-
+        
         float3 localPoint = mul(this.invModelMatrix, float4(point, 1.0)).xyz;
-        return normalize(localPoint - this.center);
+        float3 localNormal = normalize(localPoint - this.center);
+        return normalize(mul(transpose(this.invModelMatrix), float4(localNormal, 0.0)).xyz);
 
         // TODO: Student implementation ends here.
     }
@@ -123,14 +123,33 @@ public struct CubeSDF : ISDF
     public float sdf(float3 point)
     {
         // TODO: Student implementation starts here.
-        return 0.0;
+        float3 localPoint = mul(this.invModelMatrix, float4(point, 1.0)).xyz;
+        float3 d = abs(localPoint) - this.size;
+        return length(max(d, 0.0)) + min(max(max(d.x, d.y), d.z), 0.0);
+
         // TODO: Student implementation ends here.
     }
 
     public float3 normal(float3 point)
     {
         // TODO: Student implementation starts here.
-        return float3(0.0);
+
+        float3 localPoint = mul(this.invModelMatrix, float4(point, 1.0)).xyz;
+        float3 d = abs(localPoint) - this.size;
+        
+        // Find which dominant axis
+        float maxDist = max(max(d.x, d.y), d.z);
+        
+        // Normal points along that axis, in the direction of the point
+        float3 localNormal = float3(
+            abs(d.x - maxDist) < 0.001 ? sign(localPoint.x) : 0.0,
+            abs(d.y - maxDist) < 0.001 ? sign(localPoint.y) : 0.0,
+            abs(d.z - maxDist) < 0.001 ? sign(localPoint.z) : 0.0
+        );
+        
+        // Transform to world space
+        return normalize(mul(transpose(this.invModelMatrix), float4(localNormal, 0.0)).xyz);
+
         // TODO: Student implementation ends here.
     }
 }

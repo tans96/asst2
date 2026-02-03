@@ -94,7 +94,65 @@ public struct BVH<T>
         Optional<HitResult> hitResult = Optional<HitResult>();
         HitStack<64> stack;
 
+        Ray clippedRay = ray;
         // TODO: Student implementation starts here.
+        stack.push(0); // Start with root node
+        float closestT = float.maxValue;
+        while (!stack.isEmpty())
+        {
+            uint nodeIndex = stack.pop();
+            BVHNode node = this.nodes[nodeIndex];
+            float2 tHit = node.hit(clippedRay);
+            if (tHit.x > tHit.y || tHit.y < clippedRay.tRange.x || tHit.x > clippedRay.tRange.y || tHit.x > closestT)
+            {
+                continue; // No intersection with this node or farther than closest hit
+            }
+            if (node.left == -1 && node.right == -1)
+            {
+                // Leaf node, test all primitives
+                for (int i = node.primLeft; i < node.primRight; i++)
+                {
+                    Optional<RayHitResult> primitiveHit = this.primitives[i].hit(clippedRay);
+                    if (primitiveHit.hasValue && primitiveHit.value.t < closestT)
+                    {
+                        closestT = primitiveHit.value.t;
+                        clippedRay.tRange.y = closestT;
+                        HitResult result;
+                        result.primitive = this.primitives[i];
+                        result.rayHitResult = primitiveHit.value;
+                        hitResult = Optional<HitResult>(result);
+                    }
+                }
+            }
+            else
+            {
+                // Internal node, push children to stack, but only if they exist and prioritize closer ones
+                float2 leftHit = node.left == -1 ? float2(float.maxValue, float.maxValue) : this.nodes[node.left].hit(clippedRay);
+                float2 rightHit = node.right == -1 ? float2(float.maxValue, float.maxValue) : this.nodes[node.right].hit(clippedRay);
+                if (leftHit.x <= rightHit.x)
+                {
+                    if (node.right != -1 && rightHit.x <= closestT)
+                    {
+                        stack.push(node.right);
+                    }
+                    if (node.left != -1 && leftHit.x <= closestT)
+                    {
+                        stack.push(node.left);
+                    }
+                }
+                else
+                {
+                    if (node.left != -1 && leftHit.x <= closestT)
+                    {
+                        stack.push(node.left);
+                    }
+                    if (node.right != -1 && rightHit.x <= closestT)
+                    {
+                        stack.push(node.right);
+                    }
+                }
+            }
+        }
 
         // TODO: Student implementation ends here.
 

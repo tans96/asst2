@@ -32,9 +32,9 @@ class SceneObject:
         """
         # TODO: Student implementation starts here.
 
-        # TODO: Student implementation ends here.
+        return self.transform.get_matrix() * self.parent.get_transform_matrix() if self.parent else self.transform.get_matrix()
 
-        return self.transform.get_matrix()
+        # TODO: Student implementation ends here.
 
     def desc(self, depth: int = 0) -> str:
         indent = "  " * depth

@@ -24,12 +24,12 @@ public float4 fillRed(uint2 tid)
 public float4 fillGradient(uint2 tid, uint2 canvasSize)
 {
     // TODO: Student implementation starts here.
+    float r = tid.x / (float)canvasSize.x;
+    float g = tid.y / (float)canvasSize.y;
 
-    float2 uv = float2(0.0);
+    return float4(r, g, 0.0, 1.0);
 
     // TODO: Student implementation ends here.
-    
-    return float4(1.0, 0.0, 1.0, 1.0);
 }
 
 /**
@@ -42,8 +42,19 @@ public float4 fillGradient(uint2 tid, uint2 canvasSize)
 public float4 fillCheckerboard(uint2 tid, uint2 canvasSize, uint numSquares)
 {
     // TODO: Student implementation starts here.
-
-    return float4(1.0, 0.0, 1.0, 1.0);
+    uint squareWidth = canvasSize.x / numSquares;
+    uint squareHeight = canvasSize.y / numSquares;
+    uint xIndex = tid.x / squareWidth;
+    uint yIndex = tid.y / squareHeight;
+    bool isWhite = (xIndex + yIndex) % 2 == 0;
+    if (isWhite)
+    {
+        return float4(1.0, 1.0, 1.0, 1.0);
+    }
+    else
+    {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
 
     // TODO: Student implementation ends here.
 }
@@ -60,8 +71,20 @@ public float4 fillCheckerboard(uint2 tid, uint2 canvasSize, uint numSquares)
 public float4 triangleRasterizer(uint2 tid, uint2 canvasSize, float2 v0, float2 v1, float2 v2)
 {
     // TODO: Student implementation starts here.
-
-    return float4(1.0, 0.0, 1.0, 1.0);
+    float2 p = float2(tid) / float2(canvasSize);
+    float2 v0v1 = v1 - v0;
+    float2 v1v2 = v2 - v1;
+    float2 v2v0 = v0 - v2;
+    float2 v0p = p - v0;
+    float2 v1p = p - v1;
+    float2 v2p = p - v2;
+    float cross0 = v0v1.x * v0p.y - v0v1.y * v0p.x;
+    float cross1 = v1v2.x * v1p.y - v1v2.y * v1p.x;
+    float cross2 = v2v0.x * v2p.y - v2v0.y * v2p.x;
+    if ((cross0 >= 0 && cross1 >= 0 && cross2 >= 0) || (cross0 <= 0 && cross1 <= 0 && cross2 <= 0))
+        return float4(1.0, 1.0, 1.0, 1.0);
+    else
+        return float4(0.0, 0.0, 0.0, 1.0);
 
     // TODO: Student implementation ends here.
 }
@@ -108,6 +131,21 @@ public float4 rayTrianglesTest(uint2 tid, uint2 canvasSize, StructuredBuffer<Tri
     Ray ray = Ray(float3(uv, 0.0), float3(0.0, 0.0, -1.0), float2(0.0, float.maxValue));
 
     // TODO: Student implementation starts here.
-    return float4(1.0, 0.0, 1.0, 1.0);
+    Optional<RayHitResult> closestHit;
+    float closestT = float.maxValue;
+    float4 hitColor = float4(0.0, 0.0, 0.0, 1.0);
+    for (uint i = 0; i < triangleCount; i++)
+    {
+        Optional<RayHitResult> hitResult = triangles[i].hit(ray);
+        if (hitResult.hasValue && hitResult.value.t < closestT)
+        {
+            closestT = hitResult.value.t;
+            closestHit = hitResult;
+            hitColor = float4(triangles[i].averageColor(), 1.0);
+        }
+    }
+
+    return hitColor;
+
     // TODO: Student implementation starts here.
 }

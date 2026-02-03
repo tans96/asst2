@@ -37,14 +37,20 @@ public struct BoundingBox
 
     public float2 hit(Ray ray)
     {
-        float tNear = 0.0;
-        float tFar = 0.0;
-
         // TODO: Student implementation starts here.
-
-        // TODO: Student implementation ends here.
-
+        // Slab method for ray-box intersection
+        float3 invDir = 1.0 / ray.direction;
+        float3 t0 = (pMin - ray.origin) * invDir;
+        float3 t1 = (pMax - ray.origin) * invDir;
+        
+        float3 tmin = min(t0, t1);
+        float3 tmax = max(t0, t1);
+        
+        float tNear = max(max(tmin.x, tmin.y), tmin.z);
+        float tFar = min(min(tmax.x, tmax.y), tmax.z);
+        
         return float2(tNear, tFar);
+        // TODO: Student implementation ends here.
     }
 };
 
