@@ -71,7 +71,11 @@ public struct SharedTexture3DBuffer<T>
     public T pointSample(SharedTexture3D tex, float3 uvw)
     {
         // TODO: Student implementation starts here.
-        return T(0);
+        uint neearestX = min(uint(uvw.x * float(tex.size.x) + 0.5), tex.size.x - 1);
+        uint neearestY = min(uint(uvw.y * float(tex.size.y) + 0.5), tex.size.y - 1);
+        uint neearestZ = min(uint(uvw.z * float(tex.size.z) + 0.5), tex.size.z - 1);
+
+        return getBufferValue(tex, uint3(neearestX, neearestY, neearestZ));
 
         // TODO: Student implementation ends here.
     }
@@ -85,7 +89,32 @@ public struct SharedTexture3DBuffer<T>
     public T trilinearSample(SharedTexture3D tex, float3 uvw)
     {
         // TODO: Student implementation starts here.
-        return T(0);
+        float floatx = uvw.x * float(tex.size.x);
+        float floaty = uvw.y * float(tex.size.y);
+        float floatz = uvw.z * float(tex.size.z);
+        uint bottomX = min(uint(floatx), tex.size.x - 1);
+        uint bottomY = min(uint(floaty), tex.size.y - 1);
+        uint bottomZ = min(uint(floatz), tex.size.z - 1);
+        float3 weight = float3(floatx - bottomX,
+                               floaty - bottomY,
+                               floatz - bottomZ);
+        T result = T(0.0);
+        for (uint dz = 0; dz <= 1; dz++)
+            for (uint dy = 0; dy <= 1; dy++)
+                for (uint dx = 0; dx <= 1; dx++)
+                {
+                    uint x = min(bottomX + dx, tex.size.x - 1);
+                    uint y = min(bottomY + dy, tex.size.y - 1);
+                    uint z = min(bottomZ + dz, tex.size.z - 1);
+                    T c = getBufferValue(tex, uint3(x, y, z));
+
+                    float wx = dx == 0 ? (1.0 - weight.x) : weight.x;
+                    float wy = dy == 0 ? (1.0 - weight.y) : weight.y;
+                    float wz = dz == 0 ? (1.0 - weight.z) : weight.z;
+                    result = result + c * T(wx * wy * wz);
+                }
+
+        return result;
 
         // TODO: Student implementation ends here.
     }

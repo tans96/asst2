@@ -78,8 +78,51 @@ public struct Triangle : IBoundingBox, IRayCastable
     public Optional<RayHitResult> hit(Ray ray)
     {
         // TODO: Student implementation starts here.
-
-        return Optional<RayHitResult>();
+        float3 u = vertices[1] - vertices[0];
+        float3 v = vertices[2] - vertices[0];
+        float3 n = normalize(cross(u, v));
+        // Ensure normal faces the ray
+        if (dot(n, ray.direction) > 0) {
+            n = -n;
+        }
+        float denom = dot(n, ray.direction);
+        if (abs(denom) < 1e-6)
+        {
+            return Optional<RayHitResult>();
+        }
+        float c = dot(n, vertices[0]);
+        float t = (c - dot(n, ray.origin)) / denom;
+        if (t < ray.tRange.x || t > ray.tRange.y)
+        {
+            return Optional<RayHitResult>();
+        } else {
+            float3 P = ray.origin + t * ray.direction;
+            float3 w = P - vertices[0];
+            float uu = dot(u, u);
+            float uv = dot(u, v);
+            float vv = dot(v, v);
+            float wu = dot(w, u);
+            float wv = dot(w, v);
+            float D = uv * uv - uu * vv;
+            if (abs(D) < 1e-10)  // Degenerate triangle
+            {
+                return Optional<RayHitResult>();
+            }
+            float s = (uv * wv - vv * wu) / D;
+            if (s < 0.0 || s > 1.0)
+            {
+                return Optional<RayHitResult>();
+            }
+            float t_param = (uv * wu - uu * wv) / D;
+            if (t_param < 0.0 || (s + t_param) > 1.0)
+            {
+                return Optional<RayHitResult>();
+            }
+            RayHitResult result;
+            result.t = t;
+            result.normal = n;
+            return Optional<RayHitResult>(result);
+        }
 
         // TODO: Student implementation ends here.
     }

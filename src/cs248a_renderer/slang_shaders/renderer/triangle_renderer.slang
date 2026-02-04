@@ -54,7 +54,70 @@ public Optional<RayMeshIntersectionResult> rayMeshIntersection(Ray ray, Renderer
     // IMPORTANT CHANGE: We need to store the hit triangle.
 
     // TODO: Student implementation starts here.
-    
+    // Naive version: test intersection with all triangles. Set the base normal to be 0,0,0 and t to be max float value.
+    float closestT = float.maxValue;
+    StructuredBuffer<Triangle> triangles = uniforms.triangleBuf;
+    uint triangleCount = uniforms.triangleCount;
+    Optional<RayHitResult> closestHit;
+    // Sample BVH if enabled
+    if (uniforms.useBVH)
+    {
+        Optional<BVH<Triangle>.HitResult> bvhHit = uniforms.bvh.hit(ray); 
+        if (bvhHit.hasValue && bvhHit.value.rayHitResult.t < closestT)
+        {
+            closestT = bvhHit.value.rayHitResult.t;
+            result = bvhHit.value.rayHitResult;
+            hitTriangle = bvhHit.value.primitive;
+        }
+    }
+    else
+    {
+        for (uint i = 0; i < triangleCount; i++)
+        {
+            Optional<RayHitResult> hitResult = triangles[i].hit(ray);
+            if (hitResult.hasValue && hitResult.value.t < closestT)
+            {
+                closestT = hitResult.value.t;
+                result = hitResult.value;
+                hitTriangle = triangles[i];
+            }
+        }
+
+        // Test intersection with volumes
+        StructuredBuffer<Volume> volumes = uniforms.surfaceVolumeBuf;
+        uint volumeCount = uniforms.surfaceVolumeCount;
+        for (uint i = 0; i < volumeCount; i++)
+        {
+            Optional<RayHitResult> hitResult = volumes[i].hit(ray, uniforms.surfaceVolumeTexBuf);
+            if (hitResult.hasValue && hitResult.value.t < closestT)
+            {
+                closestT = hitResult.value.t;
+                result = hitResult.value;
+            }
+        }
+
+        // Sample SDFs
+        float3 currentPoint = ray.origin;
+        float distance = float.maxValue;
+        for (uint step = 0; step < MAX_STEPS; step++)
+        {
+            Tuple<float, float3> sdfSample = uniforms.sdfBuf.sample(currentPoint);
+            distance = sdfSample._0;
+            if (distance < EPSILON)
+            {
+                float t = length(currentPoint - ray.origin);
+                if (t < closestT)
+                {
+                    closestT = t;
+                    result = RayHitResult(t, sdfSample._1);
+                }
+                break;
+            }
+            currentPoint += ray.direction * distance;
+        }
+        
+    }
+
     // TODO: Student implementation ends here.
 
     if (result.hasValue && hitTriangle.hasValue)

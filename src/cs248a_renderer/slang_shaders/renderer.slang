@@ -90,10 +90,21 @@ public float4 sample(float2 uv, RendererUniform uniforms)
 public float4 render(uint2 tid, RendererUniform uniforms)
 {
     // TODO: Student implementation starts here.
+    float4 finalColor = float4(0.0, 0.0, 0.0, 0.0);
+    for (uint i = 0; i < uniforms.sqrtSpp; i++){
+        for (uint j = 0; j < uniforms.sqrtSpp; j++)
+        {
+            // Compute the uv coordinate for the current sub-sample.
+            // Note that we add 0.5 to tid to sample at the center of the pixel.
+            float2 offset = (float2(i, j) + 0.5) / float(uniforms.sqrtSpp);
+            float2 uv = (float2(tid) + offset) / float2(uniforms.camera.canvasSize);
+            finalColor += sample(uv, uniforms);
+        }
+    }
 
-    // Basic version: no supersampling.
-    float2 uv = (float2(tid) + 0.5) / float2(uniforms.camera.canvasSize);
-    return sample(uv, uniforms);
+    finalColor /= float(uniforms.sqrtSpp * uniforms.sqrtSpp);
+    return finalColor;
+
     // TODO: Student implementation ends here.
 }
 

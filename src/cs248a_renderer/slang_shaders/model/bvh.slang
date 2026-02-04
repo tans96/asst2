@@ -97,26 +97,28 @@ public struct BVH<T>
         Ray clippedRay = ray;
         // TODO: Student implementation starts here.
         stack.push(0); // Start with root node
-        float closestT = float.maxValue;
+        
         while (!stack.isEmpty())
         {
             uint nodeIndex = stack.pop();
             BVHNode node = this.nodes[nodeIndex];
+            
+            // Check if ray intersects this node's bounding box
             float2 tHit = node.hit(clippedRay);
-            if (tHit.x > tHit.y || tHit.y < clippedRay.tRange.x || tHit.x > clippedRay.tRange.y || tHit.x > closestT)
+            if (tHit.x > tHit.y || tHit.y < clippedRay.tRange.x || tHit.x > clippedRay.tRange.y)
             {
-                continue; // No intersection with this node or farther than closest hit
+                continue; // No intersection with this node
             }
+            
             if (node.left == -1 && node.right == -1)
             {
                 // Leaf node, test all primitives
                 for (int i = node.primLeft; i < node.primRight; i++)
                 {
                     Optional<RayHitResult> primitiveHit = this.primitives[i].hit(clippedRay);
-                    if (primitiveHit.hasValue && primitiveHit.value.t < closestT)
+                    if (primitiveHit.hasValue)
                     {
-                        closestT = primitiveHit.value.t;
-                        clippedRay.tRange.y = closestT;
+                        clippedRay.tRange.y = primitiveHit.value.t;
                         HitResult result;
                         result.primitive = this.primitives[i];
                         result.rayHitResult = primitiveHit.value;
@@ -126,30 +128,34 @@ public struct BVH<T>
             }
             else
             {
-                // Internal node, push children to stack, but only if they exist and prioritize closer ones
-                float2 leftHit = node.left == -1 ? float2(float.maxValue, float.maxValue) : this.nodes[node.left].hit(clippedRay);
-                float2 rightHit = node.right == -1 ? float2(float.maxValue, float.maxValue) : this.nodes[node.right].hit(clippedRay);
-                if (leftHit.x <= rightHit.x)
+                // Internal node, push children to stack
+                float2 leftHit = this.nodes[node.left].hit(clippedRay);
+                float2 rightHit = this.nodes[node.right].hit(clippedRay);
+                
+                bool leftIntersects = leftHit.x <= leftHit.y && leftHit.y >= clippedRay.tRange.x && leftHit.x <= clippedRay.tRange.y;
+                bool rightIntersects = rightHit.x <= rightHit.y && rightHit.y >= clippedRay.tRange.x && rightHit.x <= clippedRay.tRange.y;
+                
+                // Push farther child first so closer one is popped first
+                if (leftIntersects && rightIntersects)
                 {
-                    if (node.right != -1 && rightHit.x <= closestT)
+                    if (leftHit.x <= rightHit.x)
                     {
                         stack.push(node.right);
+                        stack.push(node.left);
                     }
-                    if (node.left != -1 && leftHit.x <= closestT)
+                    else
                     {
                         stack.push(node.left);
+                        stack.push(node.right);
                     }
                 }
-                else
+                else if (leftIntersects)
                 {
-                    if (node.left != -1 && leftHit.x <= closestT)
-                    {
-                        stack.push(node.left);
-                    }
-                    if (node.right != -1 && rightHit.x <= closestT)
-                    {
-                        stack.push(node.right);
-                    }
+                    stack.push(node.left);
+                }
+                else if (rightIntersects)
+                {
+                    stack.push(node.right);
                 }
             }
         }
