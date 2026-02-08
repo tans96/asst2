@@ -1,10 +1,20 @@
 from typing import List
 from pathlib import Path
+import platform
 
 import slangpy as spy
 import slangpy_nn as nn
 
 SHADER_PATH = Path(__file__).parent / "slang_shaders"
+
+_system = platform.system()
+if _system == "Darwin":
+    DEVICE_TYPE = spy.DeviceType.metal
+elif _system in ("Windows", "Linux"):
+    DEVICE_TYPE = spy.DeviceType.vulkan
+else:
+    # Default to vulkan for unknown/other platforms
+    DEVICE_TYPE = spy.DeviceType.vulkan
 
 
 def setup_device(notebook_shader_paths: List[Path]) -> spy.Device:
@@ -16,7 +26,7 @@ def setup_device(notebook_shader_paths: List[Path]) -> spy.Device:
     shader_paths.extend(nn.slang_include_paths())
     # Extra Notebook Shaders
     shader_paths.extend([p.absolute() for p in notebook_shader_paths])
-    device = spy.create_device(include_paths=shader_paths)
+    device = spy.create_device(include_paths=shader_paths, type=DEVICE_TYPE)
     return device
 
 
