@@ -53,11 +53,12 @@ The 80 points for correctness are divided as follows:
 
 * **Part 1 (40 Points)**
     * Textue Mapping (25 Points)
+        * Barycentric Coordinates (3 Points) 
         * Point Sampling (2 Points)
-        *  Bilinear Sampling (3 Points)
-        *  Mipmap Generation (5 Points)
-        *  Determining Mip Level (10 Points)
-        *  Trilinear Sampling (5 Points)
+        * Bilinear Sampling (3 Points)
+        * Mipmap Generation (5 Points)
+        * Determining Mip Level (10 Points)
+        * Trilinear Sampling (2 Points)
     *  Volume Rendering (15 Points)
         * Volume Sampling (5 Points)
         * Accumulate Color (10 Points)
