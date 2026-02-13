@@ -49,9 +49,19 @@ class MaterialField[T]:
         #  with other mipmap levels, in increasing order of levels.
         textures = [base_texture]
         # TODO: Student implementation starts here.
+        for level in range(1, self.MAX_MIP_LEVELS):
+            current_texture = textures[-1]
+            prev_height, prev_width, channels = current_texture.shape
+            new_width = max(1, prev_width // 2)
+            new_height = max(1, prev_height // 2)
+            # Simple box filter: average 2x2 blocks
+            downsampled = current_texture[:new_height*2, :new_width*2].reshape(new_height, 2, new_width, 2, channels)
+            current_texture = downsampled.mean(axis=(1, 3))
+            textures.append(current_texture)
+            if new_width == 1 and new_height == 1:
+                break
         
         # TODO: Student implementation ends here.
-
         self.textures = textures
 
     def load_texture_from_image(self, image_path: str | Path) -> None:

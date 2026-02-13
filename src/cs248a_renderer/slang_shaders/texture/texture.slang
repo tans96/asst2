@@ -16,8 +16,12 @@ public struct SharedTexture2DBuffer<T>
     public T pointSample(SharedTexture2D tex, float2 uv)
     {
         T outV = T(0.0);
-        // TODO: Student implementation starts here.
 
+        // TODO: Student implementation starts here.
+        uint neearestX = min(uint(uv.x * float(tex.size.x)), tex.size.x - 1);
+        uint neearestY = min(uint(uv.y * float(tex.size.y)), tex.size.y - 1);
+
+        outV = getBufferValue(tex, uint2(neearestX, neearestY));
         // TODO: Student implementation ends here.
         return outV;
     }
@@ -26,6 +30,25 @@ public struct SharedTexture2DBuffer<T>
     {
         T outV = T(0.0);
         // TODO: Student implementation starts here.
+        float floatx = uv.x * float(tex.size.x) - 0.5;
+        float floaty = uv.y * float(tex.size.y) - 0.5;
+
+        uint bottomX = min(uint(max(floatx, 0.0)), tex.size.x - 1);
+        uint bottomY = min(uint(max(floaty, 0.0)), tex.size.y - 1);
+        float2 weight = float2(max(floatx, 0.0) - bottomX,
+                               max(floaty, 0.0) - bottomY);
+
+        for (uint dy = 0; dy <= 1; dy++)
+                for (uint dx = 0; dx <= 1; dx++)
+                {
+                    uint x = min(bottomX + dx, tex.size.x - 1);
+                    uint y = min(bottomY + dy, tex.size.y - 1);
+                    T c = getBufferValue(tex, uint2(x, y));
+
+                    float wx = dx == 0 ? (1.0 - weight.x) : weight.x;
+                    float wy = dy == 0 ? (1.0 - weight.y) : weight.y;
+                    outV = outV + c * T(wx * wy);
+                }
 
         // TODO: Student implementation ends here.
         return outV;
@@ -71,9 +94,9 @@ public struct SharedTexture3DBuffer<T>
     public T pointSample(SharedTexture3D tex, float3 uvw)
     {
         // TODO: Student implementation starts here.
-        uint neearestX = min(uint(uvw.x * float(tex.size.x) + 0.5), tex.size.x - 1);
-        uint neearestY = min(uint(uvw.y * float(tex.size.y) + 0.5), tex.size.y - 1);
-        uint neearestZ = min(uint(uvw.z * float(tex.size.z) + 0.5), tex.size.z - 1);
+        uint neearestX = min(uint(uvw.x * float(tex.size.x)), tex.size.x - 1);
+        uint neearestY = min(uint(uvw.y * float(tex.size.y)), tex.size.y - 1);
+        uint neearestZ = min(uint(uvw.z * float(tex.size.z)), tex.size.z - 1);
 
         return getBufferValue(tex, uint3(neearestX, neearestY, neearestZ));
 
@@ -89,15 +112,15 @@ public struct SharedTexture3DBuffer<T>
     public T trilinearSample(SharedTexture3D tex, float3 uvw)
     {
         // TODO: Student implementation starts here.
-        float floatx = uvw.x * float(tex.size.x);
-        float floaty = uvw.y * float(tex.size.y);
-        float floatz = uvw.z * float(tex.size.z);
-        uint bottomX = min(uint(floatx), tex.size.x - 1);
-        uint bottomY = min(uint(floaty), tex.size.y - 1);
-        uint bottomZ = min(uint(floatz), tex.size.z - 1);
-        float3 weight = float3(floatx - bottomX,
-                               floaty - bottomY,
-                               floatz - bottomZ);
+        float floatx = uvw.x * float(tex.size.x) - 0.5;
+        float floaty = uvw.y * float(tex.size.y) - 0.5;
+        float floatz = uvw.z * float(tex.size.z) - 0.5;
+        uint bottomX = min(uint(max(floatx, 0.0)), tex.size.x - 1);
+        uint bottomY = min(uint(max(floaty, 0.0)), tex.size.y - 1);
+        uint bottomZ = min(uint(max(floatz, 0.0)), tex.size.z - 1);
+        float3 weight = float3(max(floatx, 0.0) - bottomX,
+                               max(floaty, 0.0) - bottomY,
+                               max(floatz, 0.0) - bottomZ);
         T result = T(0.0);
         for (uint dz = 0; dz <= 1; dz++)
             for (uint dy = 0; dy <= 1; dy++)

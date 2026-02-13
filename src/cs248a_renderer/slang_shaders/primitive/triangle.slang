@@ -34,6 +34,25 @@ public struct Triangle : IBoundingBox, IRayCastable
         float w = 0.0;
 
         // TODO: Student implementation starts here.
+        float3 v10 = vertices[1] - vertices[0];
+        float3 v20 = vertices[2] - vertices[0];
+        float3 vp = p - vertices[0];
+        
+        float d00 = dot(v10, v10);
+        float d01 = dot(v10, v20);
+        float d11 = dot(v20, v20);
+        float d20 = dot(vp, v10);
+        float d21 = dot(vp, v20);
+        
+        float denom = d00 * d11 - d01 * d01;
+        if (abs(denom) < EPSILON)
+        {
+            // Degenerate triangle, return equal weights
+            return float3(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0);
+        }
+        v = (d11 * d20 - d01 * d21) / denom;
+        w = (d00 * d21 - d01 * d20) / denom;
+        u = 1.0 - v - w;
 
         // TODO: Student implementation ends here.
 
@@ -81,12 +100,13 @@ public struct Triangle : IBoundingBox, IRayCastable
         float3 u = vertices[1] - vertices[0];
         float3 v = vertices[2] - vertices[0];
         float3 n = normalize(cross(u, v));
+        float epsilon = 1e-7;
         // Ensure normal faces the ray
         if (dot(n, ray.direction) > 0) {
             n = -n;
         }
         float denom = dot(n, ray.direction);
-        if (abs(denom) < 1e-6)
+        if (abs(denom) < epsilon)
         {
             return Optional<RayHitResult>();
         }
@@ -104,17 +124,17 @@ public struct Triangle : IBoundingBox, IRayCastable
             float wu = dot(w, u);
             float wv = dot(w, v);
             float D = uv * uv - uu * vv;
-            if (abs(D) < 1e-10)  // Degenerate triangle
+            if (abs(D) < epsilon)  // Degenerate triangle
             {
                 return Optional<RayHitResult>();
             }
             float s = (uv * wv - vv * wu) / D;
-            if (s < 0.0 || s > 1.0)
+            if (s < -epsilon || s > 1.0 + epsilon)
             {
                 return Optional<RayHitResult>();
             }
             float t_param = (uv * wu - uu * wv) / D;
-            if (t_param < 0.0 || (s + t_param) > 1.0)
+            if (t_param < -epsilon || (s + t_param) > 1.0 + epsilon)
             {
                 return Optional<RayHitResult>();
             }
