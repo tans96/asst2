@@ -139,6 +139,48 @@ public float getLevel(float2 uv, RendererUniform uniforms, Triangle triangle, fl
     float level = 0.0;
 
     // TODO: Student implementation starts here.
+    float dx = 1 / float(uniforms.camera.canvasSize.x);
+    float dy = 1 / float(uniforms.camera.canvasSize.y);
+    float2 uv_right = uv + float2(dx, 0);
+    float2 uv_left = uv - float2(dx, 0);
+    float2 uv_up = uv + float2(0, dy);
+    float2 uv_down = uv - float2(0, dy);
+    Ray ray_right = uniforms.camera.generateRay(uv_right);
+    Ray ray_left = uniforms.camera.generateRay(uv_left);
+    Ray ray_up = uniforms.camera.generateRay(uv_up);
+    Ray ray_down = uniforms.camera.generateRay(uv_down);
+    Optional<RayMeshIntersectionResult> rightHit = rayMeshIntersection(ray_right, uniforms);
+    Optional<RayMeshIntersectionResult> leftHit = rayMeshIntersection(ray_left, uniforms);
+    Optional<RayMeshIntersectionResult> downHit = rayMeshIntersection(ray_down, uniforms);
+    Optional<RayMeshIntersectionResult> upHit = rayMeshIntersection(ray_up, uniforms);
+    float du_dx = 0.0;
+    float dv_dx = 0.0;
+    float du_dy = 0.0;
+    float dv_dy = 0.0;
+    if (rightHit.hasValue && rightHit.value.hitTriangle.getMaterialId() == triangle.getMaterialId() && leftHit.hasValue && leftHit.value.hitTriangle.getMaterialId() == triangle.getMaterialId())
+    {
+        float3 barycentricCoordRight = rightHit.value.hitTriangle.calculateBarycentricCoord(rightHit.value.closestHit.t * ray_right.direction + ray_right.origin);
+        float3 barycentricCoordLeft = leftHit.value.hitTriangle.calculateBarycentricCoord(leftHit.value.closestHit.t * ray_left.direction + ray_left.origin);
+        float2 right_tex_uv = rightHit.value.hitTriangle.getUV(barycentricCoordRight);
+        float2 left_tex_uv = leftHit.value.hitTriangle.getUV(barycentricCoordLeft);
+        float2 duv = right_tex_uv - left_tex_uv;
+        du_dx = 0.5 * duv.x / dx;
+        dv_dx = 0.5 * duv.y / dx;
+    }
+    if (upHit.hasValue && upHit.value.hitTriangle.getMaterialId() == triangle.getMaterialId() && downHit.hasValue && downHit.value.hitTriangle.getMaterialId() == triangle.getMaterialId())
+    {
+        float3 barycentricCoordUp = upHit.value.hitTriangle.calculateBarycentricCoord(upHit.value.closestHit.t * ray_up.direction + ray_up.origin);
+        float3 barycentricCoordDown = downHit.value.hitTriangle.calculateBarycentricCoord(downHit.value.closestHit.t * ray_down.direction + ray_down.origin);
+        float2 up_tex_uv = upHit.value.hitTriangle.getUV(barycentricCoordUp);
+        float2 down_tex_uv = downHit.value.hitTriangle.getUV(barycentricCoordDown);
+        float2 duv = up_tex_uv - down_tex_uv;
+        du_dy = 0.5 * duv.x / dy;
+        dv_dy = 0.5 * duv.y / dy;
+    }
+    float rho_x = sqrt(du_dx * du_dx + dv_dx * dv_dx);
+    float rho_y = sqrt(du_dy * du_dy + dv_dy * dv_dy);
+    float rho = max(rho_x, rho_y);
+    level = log2(rho);
 
     return level;
 

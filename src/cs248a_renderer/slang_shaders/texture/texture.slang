@@ -58,7 +58,13 @@ public struct SharedTexture2DBuffer<T>
     {
         T outV = T(0.0);
         // TODO: Student implementation starts here.
-
+        float level = clamp(log2(d), 0.0, float(totalLevels - 1));
+        uint level0 = min(uint(floor(level)), totalLevels - 1);
+        uint level1 = min(level0 + 1, totalLevels - 1);
+        float weight = level - float(level0);
+        T sample0 = bilinearSample(mipmapLevels[level0], uv);
+        T sample1 = bilinearSample(mipmapLevels[level1], uv);
+        outV = sample0 * T(1.0 - weight) + sample1 * T(weight);
         // TODO: Student implementation ends here.
         return outV;
     }
