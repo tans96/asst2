@@ -112,7 +112,47 @@ public void sampleBilinear_bwd<T, let N : int>(DifferentialPtrPair<DiffTexture2D
     where T : IArithmeticAtomicable, IFloat
 {
     // TODO: Student implementation starts here.
+    // Convert UV to continuous texel space
+    float2 st = uv * float2(diffTexPair.p.size);
 
+    // Base integer coordinates and fractional parts
+    int x0 = int(floor(st.x));
+    int y0 = int(floor(st.y));
+    float fx = st.x - float(x0);
+    float fy = st.y - float(y0);
+
+    // Neighbor coordinates
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
+
+    // Clamp to texture bounds
+    int maxX = int(diffTexPair.p.size.x) - 1;
+    int maxY = int(diffTexPair.p.size.y) - 1;
+    x0 = clamp(x0, 0, maxX);
+    y0 = clamp(y0, 0, maxY);
+    x1 = clamp(x1, 0, maxX);
+    y1 = clamp(y1, 0, maxY);
+
+    // Compute linear indices
+    uint idx00 = uint(y0) * diffTexPair.p.size.x + uint(x0);
+    uint idx10 = uint(y0) * diffTexPair.p.size.x + uint(x1);
+    uint idx01 = uint(y1) * diffTexPair.p.size.x + uint(x0);
+    uint idx11 = uint(y1) * diffTexPair.p.size.x + uint(x1);
+
+    // Bilinear blend per component using float math, then cast back to T
+    float w00 = (1.0 - fx) * (1.0 - fy);
+    float w10 = fx * (1.0 - fy);
+    float w01 = (1.0 - fx) * fy;
+    float w11 = fx * fy;
+
+    [ForceUnroll]
+    for (int i = 0; i < N; ++i)
+    {
+        diffTexPair.d.dTex[idx00][i].add(dOut[i] * T(w00));
+        diffTexPair.d.dTex[idx10][i].add(dOut[i] * T(w10));
+        diffTexPair.d.dTex[idx01][i].add(dOut[i] * T(w01));
+        diffTexPair.d.dTex[idx11][i].add(dOut[i] * T(w11));
+    }
     // TODO: Student implementation ends here.
 }
 
