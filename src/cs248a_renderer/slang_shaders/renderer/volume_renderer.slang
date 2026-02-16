@@ -26,17 +26,17 @@ public float4 volumeSample(float2 uv, RendererUniform uniforms, float tMax, floa
     // Convert world-space tMax to local-space tMax.
     // Transform the world-space hit point into local space, then compute
     // the local t by projecting onto the local ray direction.
-    float localTMax = float.maxValue;
-    if (tMax < float.maxValue) {
-        float3 worldHitPoint = ray.origin + tMax * ray.direction;
-        float4 localHitPoint4 = mul(uniforms.volume.invModelMatrix, float4(worldHitPoint, 1.0));
-        float3 localHitPoint = localHitPoint4.xyz;
-        // Project onto the local ray direction to get the local t value
-        localTMax = dot(localHitPoint - localRay.origin, localRay.direction) / dot(localRay.direction, localRay.direction);
-    }
+    // float localTMax = float.maxValue;
+    // if (tMax < float.maxValue) {
+    //     float3 worldHitPoint = ray.origin + tMax * ray.direction;
+    //     float4 localHitPoint4 = mul(uniforms.volume.invModelMatrix, float4(worldHitPoint, 1.0));
+    //     float3 localHitPoint = localHitPoint4.xyz;
+    //     // Project onto the local ray direction to get the local t value
+    //     localTMax = dot(localHitPoint - localRay.origin, localRay.direction) / dot(localRay.direction, localRay.direction);
+    // }
 
-    // Pass localTMax via tRange so accumulateColor can stop at the primitive
-    localRay.tRange = float2(localRay.tRange.x, localTMax);
+    // // Pass localTMax via tRange so accumulateColor can stop at the primitive
+    // localRay.tRange = float2(localRay.tRange.x, localTMax);
 
     BoundingBox volumeBound = uniforms.volume.bound;
 
@@ -57,6 +57,14 @@ public void volumeSampleBwd(float2 uv, RendererUniform uniforms, float4 outGrad)
 {
     // TODO: Student implementation starts here.
 
+    Ray ray = uniforms.camera.generateRay(uv);
+    Ray localRay = ray.transform(uniforms.volume.invModelMatrix);
+
+    BoundingBox volumeBound = uniforms.volume.bound;
+    DifferentialPtrPair<DiffTexture3D<float, 4>> diffTexPair = { uniforms.volume.tex, uniforms.volume.dTex };
+
+    bwd_diff(accumulateColor<4>)(localRay, volumeBound, MAX_STEPS, STEP_SIZE, DENSITY_SCALE, uniforms.ambientColor, diffTexPair, outGrad);
+   
     // TODO: Student implementation ends here.
 }
 
@@ -97,7 +105,7 @@ public float4 accumulateColor<let N : uint>(
     float T = 1.0;                   // transmittance (attenuation)
     float t = tHit.x;
     uint step = 0;
-    [MaxIters(1024)]
+    [MaxIters(350)] // Ideally 388 steps diagonal ≈ 128 × 0.0175 × sqrt(3) / 0.01
     while (step < maxSteps) {
         t += stepSize;  
         if (t > tHit.y) {
@@ -114,7 +122,8 @@ public float4 accumulateColor<let N : uint>(
 
     // Composite: volume color in front, background behind with remaining transmittance
     float3 finalRgb = accColor + T * backgroundColor.rgb;
-    return float4(finalRgb, 1.0);
+    float finalAlpha = (1.0 - T) + T * backgroundColor.a;
+    return float4(finalRgb, finalAlpha);
 
     // TODO: Student implementation ends here.
 }

@@ -299,6 +299,73 @@ public void sampleTrilinear_bwd<T, let N : int>(DifferentialPtrPair<DiffTexture3
     where T : IArithmeticAtomicable, IFloat
 {
     // TODO: Student implementation starts here.
+    // Convert UVW to continuous texel space
+    float3 stp = uv * float3(diffTexPair.p.size);
 
+    // Base integer coordinates and fractional parts
+    int x0 = int(floor(stp.x));
+    int y0 = int(floor(stp.y));
+    int z0 = int(floor(stp.z));
+    float fx = stp.x - float(x0);
+    float fy = stp.y - float(y0);
+    float fz = stp.z - float(z0);
+
+    // Neighbor coordinates
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
+    int z1 = z0 + 1;
+
+    // Clamp to texture bounds
+    int maxX = int(diffTexPair.p.size.x) - 1;
+    int maxY = int(diffTexPair.p.size.y) - 1;
+    int maxZ = int(diffTexPair.p.size.z) - 1;
+    x0 = clamp(x0, 0, maxX);
+    y0 = clamp(y0, 0, maxY);
+    z0 = clamp(z0, 0, maxZ);
+    x1 = clamp(x1, 0, maxX);
+    y1 = clamp(y1, 0, maxY);
+    z1 = clamp(z1, 0, maxZ);
+
+    // Compute linear indices
+    uint sx = diffTexPair.p.size.x;
+    uint sy = diffTexPair.p.size.y;
+    uint idx000 = (uint(z0) * sy + uint(y0)) * sx + uint(x0);
+    uint idx100 = (uint(z0) * sy + uint(y0)) * sx + uint(x1);
+    uint idx010 = (uint(z0) * sy + uint(y1)) * sx + uint(x0);
+    uint idx110 = (uint(z0) * sy + uint(y1)) * sx + uint(x1);
+    uint idx001 = (uint(z1) * sy + uint(y0)) * sx + uint(x0);
+    uint idx101 = (uint(z1) * sy + uint(y0)) * sx + uint(x1);
+    uint idx011 = (uint(z1) * sy + uint(y1)) * sx + uint(x0);
+    uint idx111 = (uint(z1) * sy + uint(y1)) * sx + uint(x1);
+
+    // Trilinear weights
+    float wx0 = (1.0 - fx);
+    float wy0 = (1.0 - fy);
+    float wz0 = (1.0 - fz);
+    float wx1 = fx;
+    float wy1 = fy;
+    float wz1 = fz;
+
+    float w000 = wx0 * wy0 * wz0;
+    float w100 = wx1 * wy0 * wz0;
+    float w010 = wx0 * wy1 * wz0;
+    float w110 = wx1 * wy1 * wz0;
+    float w001 = wx0 * wy0 * wz1;
+    float w101 = wx1 * wy0 * wz1;
+    float w011 = wx0 * wy1 * wz1;
+    float w111 = wx1 * wy1 * wz1;
+
+    [ForceUnroll]
+    for (int i = 0; i < N; ++i)
+    {
+        diffTexPair.d.dTex[idx000][i].add(dOut[i] * T(w000));
+        diffTexPair.d.dTex[idx100][i].add(dOut[i] * T(w100));
+        diffTexPair.d.dTex[idx010][i].add(dOut[i] * T(w010));
+        diffTexPair.d.dTex[idx110][i].add(dOut[i] * T(w110));
+        diffTexPair.d.dTex[idx001][i].add(dOut[i] * T(w001));
+        diffTexPair.d.dTex[idx101][i].add(dOut[i] * T(w101));
+        diffTexPair.d.dTex[idx011][i].add(dOut[i] * T(w011));
+        diffTexPair.d.dTex[idx111][i].add(dOut[i] * T(w111));
+    }
     // TODO: Student implementation ends here.
 }
